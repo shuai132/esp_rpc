@@ -1,0 +1,12 @@
+{
+  "build": {
+    "srcDir": "_",
+    "flags": [
+      "-I .",
+      "-I RpcCore"
+    ],
+    "lib_deps": [
+      "ottowinter/ESPAsyncTCP-esphome @ 1.2.3"
+    ]
+  }
+}

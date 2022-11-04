@@ -27,8 +27,8 @@ struct tcp_session {
       auto sendSize = client_->write((char*)data + (originSize - remainSize), remainSize);
       remainSize -= sendSize;
       if (sendSize == 0) {
-        // todo:
-        esp_rpc_LOGW("send size: %u", sendSize);
+        esp_rpc_LOGW("sendSize == 0");
+        delay(10);
       }
     }
 
@@ -52,12 +52,12 @@ struct tcp_server {
         [this](void*, AsyncClient* client) {
           esp_rpc_LOGD("tcp_session open: %p", client);
           auto tss = std::make_shared<tcp_session>(client);
+          // bind tcp_session lifecycle to AsyncClient
           client->onDisconnect([tss](void*, AsyncClient* client) {
             esp_rpc_LOGD("tcp_session close: %p", client);
             if (tss->on_close) tss->on_close();
-          });  // keep tss
-          auto ws = std::weak_ptr<tcp_session>(tss);
-          if (on_session) on_session(std::move(ws));
+          });
+          if (on_session) on_session(tss);
         },
         nullptr);
   }
@@ -81,12 +81,11 @@ struct tcp_client : tcp_session {
     });
     client_->onError([this](void*, AsyncClient*, err_t error) {
       if (!opening_) return;
-      std::error_code ec;  // todo
-      if (on_open_failed) on_open_failed(ec);
+      if (on_open_failed) on_open_failed(std::make_error_code(static_cast<std::errc>(error)));
     });
   }
 
-  void open(const std::string& ip, const std::string& port) {
+  void open(const std::string& ip, uint16_t port) {
     opening_ = true;
   }
   std::function<void()> on_open;

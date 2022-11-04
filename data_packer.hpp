@@ -37,6 +37,7 @@ class data_packer : noncopyable {
     payload.insert(payload.size(), (char *)data, size);
     return payload;
   }
+
   std::string pack(const std::string &data) const {
     return pack(data.data(), data.size());
   }

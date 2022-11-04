@@ -50,10 +50,10 @@ struct tcp_server {
   explicit tcp_server(uint16_t port) : server_(port) {
     server_.onClient(
         [this](void*, AsyncClient* client) {
-          esp_rpc_LOGD("new tcp_session: %p", client);
+          esp_rpc_LOGD("tcp_session open: %p", client);
           auto tss = std::make_shared<tcp_session>(client);
-          client->onDisconnect([tss](void*, AsyncClient*) {
-            esp_rpc_LOGD("onDisconnect: %p", tss.get());
+          client->onDisconnect([tss](void*, AsyncClient* client) {
+            esp_rpc_LOGD("tcp_session close: %p", client);
             if (tss->on_close) tss->on_close();
           });  // keep tss
           auto ws = std::weak_ptr<tcp_session>(tss);

@@ -80,13 +80,19 @@ struct tcp_client : tcp_session {
       if (on_open) on_open();
     });
     client_->onError([this](void*, AsyncClient*, err_t error) {
+      esp_rpc_LOGE("tcp_client: onError: %ld", error);
       if (!opening_) return;
       if (on_open_failed) on_open_failed(std::make_error_code(static_cast<std::errc>(error)));
     });
   }
 
+  ~tcp_client() {
+    delete client_;
+  }
+
   void open(const std::string& ip, uint16_t port) {
     opening_ = true;
+    client_->connect(ip.c_str(), port);
   }
   std::function<void()> on_open;
   std::function<void(std::error_code)> on_open_failed;

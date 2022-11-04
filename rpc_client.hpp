@@ -13,50 +13,30 @@ namespace esp_rpc {
 
 class rpc_client : noncopyable {
  public:
-  explicit rpc_client(uint32_t max_body_size = UINT32_MAX) : data_packer_(max_body_size) {
-    client_.on_open = [this]() {
-      auto rpc = RpcCore::Rpc::create();
+  explicit rpc_client(uint32_t max_body_size = UINT32_MAX) : max_body_size_(max_body_size) {
+    client_->on_open = [this]() {
+      auto session = std::make_shared<rpc_session>(max_body_size_);
+      session->init(client_);
 
-      rpc->setTimer([](uint32_t ms, RpcCore::Rpc::TimeoutCb cb) {
-        setTimeout(ms, std::move(cb));
-      });
-
-      rpc->getConn()->sendPackageImpl = [this](const std::string& data) {
-        auto ret = data_packer_.pack(data.data(), data.size(), [&](const void* data, size_t size) {
-          return client_.send(data, size) == size;
-        });
-
-        if (!ret) {
-          client_.close();
-        }
+      session->on_close = [this] {
+        client_->on_data = nullptr;
+        if (on_close) on_close();
       };
 
-      data_packer_.on_data = [rpc](std::string data) {
-        rpc->getConn()->onRecvPackage(std::move(data));
-      };
-      client_.on_data = [this](const std::string& data) {
-        data_packer_.feed(data.data(), data.size());
-      };
-
-      on_open(rpc);
+      if (on_open) on_open(session->rpc);
     };
 
-    client_.on_close = [this] {
-      client_.on_data = nullptr;
-      on_close();
-    };
-
-    client_.on_open_failed = [this](const std::error_code& ec) {
+    client_->on_open_failed = [this](const std::error_code& ec) {
       if (on_open_failed) on_open_failed(ec);
     };
   }
 
   void open(const std::string& ip, uint16_t port) {
-    client_.open(ip, port);
+    client_->open(ip, port);
   }
 
   void close() {
-    client_.close();
+    client_->close();
   }
 
  public:
@@ -65,8 +45,8 @@ class rpc_client : noncopyable {
   std::function<void(std::error_code)> on_open_failed;
 
  private:
-  tcp_client client_;
-  data_packer data_packer_;
+  uint32_t max_body_size_;
+  std::shared_ptr<tcp_client> client_ = std::make_shared<tcp_client>();
 };
 
 }  // namespace esp_rpc

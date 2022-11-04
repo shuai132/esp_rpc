@@ -1,12 +1,31 @@
 {
+  "name": "esp_rpc",
+  "description": "Tiny RPC Library for ESP8266",
+  "keywords": "rpc,tcp",
+  "authors": {
+    "name": "shuai132",
+    "maintainer": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shuai132/esp_rpc.git"
+  },
+  "version": "1.0.2",
+  "frameworks": "arduino",
+  "platforms": "espressif8266",
   "build": {
     "srcDir": "_",
     "flags": [
       "-I .",
       "-I RpcCore"
-    ],
-    "lib_deps": [
-      "ottowinter/ESPAsyncTCP-esphome @ 1.2.3"
     ]
-  }
+  },
+  "dependencies": [
+    {
+      "owner": "me-no-dev",
+      "name": "ESPAsyncTCP",
+      "version": "^1.2.2",
+      "platforms": "espressif8266"
+    }
+  ]
 }

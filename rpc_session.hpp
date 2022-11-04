@@ -40,6 +40,7 @@ class rpc_session : noncopyable, public std::enable_shared_from_this<rpc_session
 
     // bind rpc_session lifecycle to tcp_session and end with on_close
     tcp_session->on_close = [rpc_session = shared_from_this()]() mutable {
+      if (!rpc_session) return;
       if (rpc_session->on_close) {
         rpc_session->on_close();
       }

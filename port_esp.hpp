@@ -9,11 +9,17 @@
 
 namespace esp_rpc {
 
-struct tcp_session {
+class tcp_session {
+ public:
   explicit tcp_session(AsyncClient* client) : client_(client) {
+    esp_rpc_LOGD("tcp_session new: %p, client: %p", this, client);
     client->onData([this](void*, AsyncClient*, void* data, size_t len) {
       if (on_data) on_data(std::string((char*)data, len));
     });
+  }
+
+  ~tcp_session() {
+    esp_rpc_LOGD("~tcp_session: %p", this);
   }
 
   std::function<void()> on_close;
@@ -46,15 +52,16 @@ struct tcp_session {
   friend class tcp_client;
 };
 
-struct tcp_server {
+class tcp_server {
+ public:
   explicit tcp_server(uint16_t port) : server_(port) {
     server_.onClient(
         [this](void*, AsyncClient* client) {
-          esp_rpc_LOGD("tcp_session open: %p", client);
+          esp_rpc_LOGD("onClient: %p", client);
           auto tss = std::make_shared<tcp_session>(client);
           // bind tcp_session lifecycle to AsyncClient
           client->onDisconnect([tss](void*, AsyncClient* client) {
-            esp_rpc_LOGD("tcp_session close: %p", client);
+            esp_rpc_LOGD("onDisconnect: %p", client);
             if (tss->on_close) tss->on_close();
           });
           if (on_session) on_session(tss);
@@ -73,16 +80,25 @@ struct tcp_server {
   AsyncServer server_;
 };
 
-struct tcp_client : tcp_session {
+class tcp_client : public tcp_session {
+ public:
   tcp_client() : tcp_session(new AsyncClient) {
     client_->onConnect([this](void*, AsyncClient*) {
       opening_ = false;
       if (on_open) on_open();
     });
+
     client_->onError([this](void*, AsyncClient*, err_t error) {
-      esp_rpc_LOGE("tcp_client: onError: %ld", error);
+      esp_rpc_LOGE("onError: %ld", error);
+      opening_ = false;
       if (!opening_) return;
       if (on_open_failed) on_open_failed(std::make_error_code(static_cast<std::errc>(error)));
+    });
+
+    client_->onDisconnect([this](void*, AsyncClient* client) {
+      esp_rpc_LOGD("onDisconnect: %p", client);
+      opening_ = false;
+      if (on_close) on_close();
     });
   }
 
@@ -91,6 +107,7 @@ struct tcp_client : tcp_session {
   }
 
   void open(const std::string& ip, uint16_t port) {
+    if (opening_) return;
     opening_ = true;
     client_->connect(ip.c_str(), port);
   }

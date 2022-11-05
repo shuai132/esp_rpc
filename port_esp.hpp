@@ -1,11 +1,17 @@
 #pragma once
 
-#include <DNSServer.h>
-#include <ESP8266WiFi.h>
-#include <ESPAsyncTCP.h>
-
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <system_error>
+
+#ifdef ESP8266
+#include <ESPAsyncTCP.h>
+#elif defined(ESP32)
+#include "AsyncTCP.h"
+#else
+#error "platform not support"
+#endif
 
 namespace esp_rpc {
 

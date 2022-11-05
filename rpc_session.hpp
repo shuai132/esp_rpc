@@ -51,8 +51,8 @@ class rpc_session : noncopyable, public std::enable_shared_from_this<rpc_session
       rpc->getConn()->onRecvPackage(std::move(data));
     };
 
-    tcp_session->on_data = [this](const std::string& data) {
-      data_packer_.feed(data.data(), data.size());
+    tcp_session->on_data = [this](uint8_t* data, size_t size) {
+      data_packer_.feed(data, size);
     };
   }
 

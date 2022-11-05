@@ -14,7 +14,7 @@ class tcp_session {
   explicit tcp_session(AsyncClient* client) : client_(client) {
     esp_rpc_LOGD("tcp_session new: %p, client: %p", this, client);
     client->onData([this](void*, AsyncClient*, void* data, size_t len) {
-      if (on_data) on_data(std::string((char*)data, len));
+      if (on_data) on_data((uint8_t*)data, len);
     });
   }
 
@@ -24,7 +24,7 @@ class tcp_session {
 
   std::function<void()> on_close;
 
-  std::function<void(std::string)> on_data;
+  std::function<void(uint8_t* data, size_t size)> on_data;
 
   size_t send(const void* data, size_t size) {
     auto originSize = size;

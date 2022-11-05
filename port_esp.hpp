@@ -13,14 +13,22 @@
 #error "platform not support"
 #endif
 
+// platform implication
+namespace esp_rpc {
+void dispatch(std::function<void()> runnable);
+void setTimeout(uint32_t ms, std::function<void()> cb);
+}  // namespace esp_rpc
+
 namespace esp_rpc {
 
 class tcp_session {
  public:
   explicit tcp_session(AsyncClient* client) : client_(client) {
     esp_rpc_LOGD("tcp_session new: %p, client: %p", this, client);
-    client->onData([this](void*, AsyncClient*, void* data, size_t len) {
-      if (on_data) on_data((uint8_t*)data, len);
+    client->onData([this](void*, AsyncClient*, void* data, size_t size) {
+      dispatch([this, data = std::string((char*)data, size)] {
+        if (on_data) on_data((uint8_t*)data.data(), data.size());
+      });
     });
   }
 
@@ -35,12 +43,19 @@ class tcp_session {
   size_t send(const void* data, size_t size) {
     auto originSize = size;
     auto remainSize = size;
-    while (remainSize != 0) {
+    int retryCount = 0;
+    while (client_->connected() && remainSize != 0) {
       auto sendSize = client_->write((char*)data + (originSize - remainSize), remainSize);
       remainSize -= sendSize;
       if (sendSize == 0) {
-        esp_rpc_LOGW("sendSize == 0");
-        delay(10);
+        if (++retryCount <= 3) {
+          esp_rpc_LOGW("sendSize == 0, remainSize: %zu", remainSize);
+          delay(100);
+        } else {
+          break;
+        }
+      } else {
+        retryCount = 0;
       }
     }
 
@@ -66,11 +81,15 @@ class tcp_server {
           esp_rpc_LOGD("onClient: %p", client);
           auto tss = std::make_shared<tcp_session>(client);
           // bind tcp_session lifecycle to AsyncClient
-          client->onDisconnect([tss](void*, AsyncClient* client) {
+          client->onDisconnect([tss](void*, AsyncClient* client) mutable {
             esp_rpc_LOGD("onDisconnect: %p", client);
-            if (tss->on_close) tss->on_close();
+            dispatch([tss = std::move(tss)] {
+              if (tss->on_close) tss->on_close();
+            });
           });
-          if (on_session) on_session(tss);
+          dispatch([this, tss = std::move(tss)] {
+            if (on_session) on_session(tss);
+          });
         },
         nullptr);
   }
@@ -91,20 +110,26 @@ class tcp_client : public tcp_session {
   tcp_client() : tcp_session(new AsyncClient) {
     client_->onConnect([this](void*, AsyncClient*) {
       opening_ = false;
-      if (on_open) on_open();
+      dispatch([this] {
+        if (on_open) on_open();
+      });
     });
 
     client_->onError([this](void*, AsyncClient*, err_t error) {
       esp_rpc_LOGE("onError: %ld", error);
       opening_ = false;
       if (!opening_) return;
-      if (on_open_failed) on_open_failed(std::make_error_code(static_cast<std::errc>(error)));
+      dispatch([this, error] {
+        if (on_open_failed) on_open_failed(std::make_error_code(static_cast<std::errc>(error)));
+      });
     });
 
     client_->onDisconnect([this](void*, AsyncClient* client) {
       esp_rpc_LOGD("onDisconnect: %p", client);
       opening_ = false;
-      if (on_close) on_close();
+      dispatch([this] {
+        if (on_close) on_close();
+      });
     });
   }
 
@@ -123,7 +148,5 @@ class tcp_client : public tcp_session {
  private:
   bool opening_ = false;
 };
-
-void setTimeout(uint32_t ms, std::function<void()> cb);
 
 }  // namespace esp_rpc

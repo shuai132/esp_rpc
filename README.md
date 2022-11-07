@@ -1,12 +1,27 @@
 # esp_rpc
 
-a Tiny RPC library for ESP32/ESP8266, and can be port to any platform easily.
+a Tiny RPC library for ESP32/ESP8266, and can be ported to any platform easily.
 
 RPC based on [RpcCore](https://github.com/shuai132/RpcCore)
 
 ## Requirements
 
 * C++11
+
+* implement
+
+```c++
+namespace esp_rpc {
+void dispatch(std::function<void()> runnable) {
+    // dispatch runnable to main thread looper
+    // because tcp callback may from interrupt or other thread 
+}
+
+void setTimeout(uint32_t ms, std::function<void()> cb) {
+    // timeout implement
+}
+}  // namespace esp_rpc
+```
 
 ## Usage
 

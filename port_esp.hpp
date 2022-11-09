@@ -3,21 +3,9 @@
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <system_error>
 
-#ifdef ESP8266
-#include <ESPAsyncTCP.h>
-#elif defined(ESP32)
-#include "AsyncTCP.h"
-#else
-#error "platform not support"
-#endif
-
-// platform implication
-namespace esp_rpc {
-void dispatch(std::function<void()> runnable);
-void setTimeout(uint32_t ms, std::function<void()> cb);
-}  // namespace esp_rpc
+#include "port_common.h"
+#include "port_error.hpp"
 
 namespace esp_rpc {
 
@@ -35,10 +23,6 @@ class tcp_session {
   ~tcp_session() {
     esp_rpc_LOGD("~tcp_session: %p", this);
   }
-
-  std::function<void()> on_close;
-
-  std::function<void(uint8_t* data, size_t size)> on_data;
 
   size_t send(const void* data, size_t size) {
     auto originSize = size;
@@ -66,6 +50,10 @@ class tcp_session {
   void close() {
     client_->close(true);
   }
+
+ public:
+  std::function<void()> on_close;
+  std::function<void(uint8_t* data, size_t size)> on_data;
 
  private:
   AsyncClient* client_;
@@ -116,12 +104,13 @@ class tcp_client : public tcp_session {
     });
 
     client_->onError([this](void*, AsyncClient*, err_t error) {
-      esp_rpc_LOGE("onError: %ld", error);
+      esp_rpc_LOGE("onError: %ld, %s", error, client_->errorToString(error));
+      if (opening_) {
+        dispatch([this, error] {
+          if (on_open_failed) on_open_failed(ErrorType(error));
+        });
+      }
       opening_ = false;
-      if (!opening_) return;
-      dispatch([this, error] {
-        if (on_open_failed) on_open_failed(std::make_error_code(static_cast<std::errc>(error)));
-      });
     });
 
     client_->onDisconnect([this](void*, AsyncClient* client) {
@@ -142,6 +131,8 @@ class tcp_client : public tcp_session {
     opening_ = true;
     client_->connect(ip.c_str(), port);
   }
+
+ public:
   std::function<void()> on_open;
   std::function<void(std::error_code)> on_open_failed;
 

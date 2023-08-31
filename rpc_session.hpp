@@ -2,9 +2,9 @@
 
 #include <utility>
 
-#include "RpcCore.hpp"
 #include "detail/noncopyable.hpp"
 #include "port_esp.hpp"
+#include "rpc_core.hpp"
 
 namespace esp_rpc {
 
@@ -17,16 +17,16 @@ class rpc_session : noncopyable, public std::enable_shared_from_this<rpc_session
     tcp_session_ = std::move(ws);
     auto tcp_session = tcp_session_.lock();
 
-    rpc = RpcCore::Rpc::create();
+    rpc = rpc_core::rpc::create();
 
-    rpc->setTimer([](uint32_t ms, RpcCore::Rpc::TimeoutCb cb) {
-      setTimeout(ms, std::move(cb));
+    rpc->set_timer([](uint32_t ms, rpc_core::rpc::timeout_cb cb) {
+      set_timeout(ms, std::move(cb));
     });
 
-    rpc->getConn()->sendPackageImpl = [this](const std::string& data) {
+    rpc->get_connection()->send_package_impl = [this](const std::string& data) {
       auto tcp_session = tcp_session_.lock();
       if (!tcp_session) {
-        esp_rpc_LOGW("tcp_session expired on sendPackage");
+        ESP_RPC_LOGW("tcp_session expired on sendPackage");
       }
 
       auto ret = data_packer_.pack(data.data(), data.size(), [&](const void* data, size_t size) {
@@ -48,7 +48,7 @@ class rpc_session : noncopyable, public std::enable_shared_from_this<rpc_session
     };
 
     data_packer_.on_data = [this](std::string data) {
-      rpc->getConn()->onRecvPackage(std::move(data));
+      rpc->get_connection()->on_recv_package(std::move(data));
     };
 
     tcp_session->on_data = [this](uint8_t* data, size_t size) {
@@ -67,7 +67,7 @@ class rpc_session : noncopyable, public std::enable_shared_from_this<rpc_session
   std::function<void()> on_close;
 
  public:
-  std::shared_ptr<RpcCore::Rpc> rpc;
+  std::shared_ptr<rpc_core::rpc> rpc;
 
  private:
   data_packer data_packer_;

@@ -8,8 +8,8 @@
 using namespace esp_rpc;
 
 static void simpleUsage() {
-  esp_rpc_LOG();
-  esp_rpc_LOG("simpleUsage...");
+  ESP_RPC_LOG();
+  ESP_RPC_LOG("simpleUsage...");
   data_packer packer;
   std::string testData = "hello world";
   std::string packedData;
@@ -26,13 +26,13 @@ static void simpleUsage() {
   };
   packer.feed(packedData.data(), packedData.size());
   ASSERT(testData == feedRecData);
-  esp_rpc_LOG("packedData PASS");
+  ESP_RPC_LOG("packedData PASS");
 
   std::string packedData2 = packer.pack(testData);
   ASSERT(packedData2 == packedData);
-  esp_rpc_LOG("packedData2 PASS");
+  ESP_RPC_LOG("packedData2 PASS");
 
-  esp_rpc_LOG("feed again...");
+  ESP_RPC_LOG("feed again...");
   feedRecData.clear();
   ASSERT(testData != feedRecData);
   packer.feed(packedData.data(), packedData.size());
@@ -40,46 +40,46 @@ static void simpleUsage() {
 }
 
 static void testCommon() {
-  esp_rpc_LOG();
-  esp_rpc_LOG("testCommon...");
-  esp_rpc_LOG("generate big data...");
+  ESP_RPC_LOG();
+  ESP_RPC_LOG("testCommon...");
+  ESP_RPC_LOG("generate big data...");
   bool pass = false;
   std::string TEST_PAYLOAD;
   int TestAddCount = 1000;
   for (int i = 0; i < TestAddCount; i++) {
     TEST_PAYLOAD += "helloworld";  // 10bytes
   }
-  esp_rpc_LOG("data generated, size:%zu", TEST_PAYLOAD.size());
+  ESP_RPC_LOG("data generated, size:%zu", TEST_PAYLOAD.size());
   ASSERT(TEST_PAYLOAD.size() == TestAddCount * 10);
 
   data_packer packer;
   packer.on_data = [&](const std::string &data) {
     size_t size = data.size();
-    esp_rpc_LOG("get payload size:%zu", size);
+    ESP_RPC_LOG("get payload size:%zu", size);
     if (data == TEST_PAYLOAD) {
       pass = true;
     }
   };
 
-  esp_rpc_LOG("packing...");
+  ESP_RPC_LOG("packing...");
   auto payload = packer.pack(TEST_PAYLOAD);
   const uint32_t payloadSize = payload.size();
-  esp_rpc_LOG("payloadSize:%u", payloadSize);
+  ESP_RPC_LOG("payloadSize:%u", payloadSize);
   ASSERT(payloadSize == TestAddCount * 10 + 4);
 
-  esp_rpc_LOG("******test normal******");
+  ESP_RPC_LOG("******test normal******");
   packer.feed(payload.data(), payloadSize);
   ASSERT(pass);
   pass = false;
 
-  esp_rpc_LOG("******test random******");
+  ESP_RPC_LOG("******test random******");
   uint32_t sendLeft = payloadSize;
   std::default_random_engine generator(time(nullptr));  // NOLINT
   std::uniform_int_distribution<int> dis(1, 10);
   auto random = std::bind(dis, generator);  // NOLINT
   while (sendLeft > 0) {
     uint32_t randomSize = random();
-    // esp_rpc_LOG("random: %u,  %u", randomSize, sendLeft);
+    // ESP_RPC_LOG("random: %u,  %u", randomSize, sendLeft);
     size_t needSend = std::min(randomSize, sendLeft);
     packer.feed(payload.data() + (payloadSize - sendLeft), needSend);
     sendLeft -= needSend;

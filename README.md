@@ -2,7 +2,7 @@
 
 a Tiny RPC library for ESP32/ESP8266, and can be ported to any platform easily.
 
-RPC based on [RpcCore](https://github.com/shuai132/RpcCore)
+RPC based on [rpc_core](https://github.com/shuai132/rpc_core)
 
 ## Requirements
 
@@ -17,7 +17,7 @@ void dispatch(std::function<void()> runnable) {
     // because tcp callback may from interrupt or other thread 
 }
 
-void setTimeout(uint32_t ms, std::function<void()> cb) {
+void set_timeout(uint32_t ms, std::function<void()> cb) {
     // timeout implement
 }
 }  // namespace esp_rpc
@@ -34,7 +34,7 @@ void setTimeout(uint32_t ms, std::function<void()> cb) {
     auto session = rs.lock();
     session->on_close = [rs] {
     };
-    session->rpc->subscribe("cmd", [](const RpcCore::String& data) -> RpcCore::String {
+    session->rpc->subscribe("cmd", [](const std::string& data) -> std::string {
       return "world";
     });
   };
@@ -44,10 +44,10 @@ void setTimeout(uint32_t ms, std::function<void()> cb) {
 ```c++
   // client
   rpc_client client;
-  client.on_open = [&](const std::shared_ptr<RpcCore::Rpc>& rpc) {
+  client.on_open = [&](const std::shared_ptr<rpc_core::rpc>& rpc) {
     rpc->cmd("cmd")
-        ->msg(RpcCore::String("hello"))
-        ->rsp([&](const RpcCore::String& data) {
+        ->msg(std::string("hello"))
+        ->rsp([&](const std::string& data) {
         })
         ->call();
   };

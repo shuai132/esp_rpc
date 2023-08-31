@@ -4,7 +4,7 @@
 #include <functional>
 #include <string>
 
-// #define esp_rpc_LOG_SHOW_VERBOSE
+// #define ESP_RPC_LOG_SHOW_VERBOSE
 #include "detail/log.h"
 #include "detail/noncopyable.hpp"
 
@@ -30,7 +30,7 @@ class data_packer : noncopyable {
   std::string pack(const void *data, size_t size) const {
     std::string payload;
     if (size > max_body_size_) {
-      esp_rpc_LOGW("size > max_body_size: %zu > %u", size, max_body_size_);
+      ESP_RPC_LOGW("size > max_body_size: %zu > %u", size, max_body_size_);
       return payload;
     }
     payload.insert(0, (char *)&size, 4);
@@ -65,9 +65,9 @@ class data_packer : noncopyable {
     }
     body_size_ = *(uint32_t *)(buffer_.data());
     buffer_.clear();
-    esp_rpc_LOGV("feed: wait body_size: %u", body_size_);
+    ESP_RPC_LOGV("feed: wait body_size: %u", body_size_);
     if (body_size_ > max_body_size_) {
-      esp_rpc_LOGW("body_size > max_body_size: %u > %u", body_size_, max_body_size_);
+      ESP_RPC_LOGW("body_size > max_body_size: %u > %u", body_size_, max_body_size_);
       reset();
       return false;
     }

@@ -3,10 +3,10 @@
 #include <system_error>
 #include <utility>
 
-#include "RpcCore.hpp"
 #include "data_packer.hpp"
 #include "detail/noncopyable.hpp"
 #include "port_esp.hpp"
+#include "rpc_core.hpp"
 #include "rpc_session.hpp"
 
 namespace esp_rpc {
@@ -40,7 +40,7 @@ class rpc_client : noncopyable {
   }
 
  public:
-  std::function<void(std::shared_ptr<RpcCore::Rpc>)> on_open;
+  std::function<void(std::shared_ptr<rpc_core::rpc>)> on_open;
   std::function<void()> on_close;
   std::function<void(std::error_code)> on_open_failed;
 

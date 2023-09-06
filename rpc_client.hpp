@@ -3,7 +3,6 @@
 #include <system_error>
 #include <utility>
 
-#include "data_packer.hpp"
 #include "detail/noncopyable.hpp"
 #include "port_esp.hpp"
 #include "rpc_core.hpp"

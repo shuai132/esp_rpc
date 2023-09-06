@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "detail/log.h"
 #include "port_common.h"
 #include "port_error.hpp"
 

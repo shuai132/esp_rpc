@@ -1,6 +1,5 @@
 #include <utility>
 
-#include "data_packer.hpp"
 #include "rpc_session.hpp"
 
 namespace esp_rpc {

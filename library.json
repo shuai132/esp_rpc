@@ -20,7 +20,7 @@
     "srcDir": "_",
     "flags": [
       "-I .",
-      "-I rpc_core"
+      "-I rpc_core/include"
     ]
   },
   "dependencies": [

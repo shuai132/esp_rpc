@@ -13,8 +13,3 @@ add_compile_options(-Wall)
 
 add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE .)
-
-if (ESP_RPC_BUILD_TEST)
-    link_libraries(${PROJECT_NAME})
-    add_executable(${PROJECT_NAME}_test_data_packer test/data_packer.cpp)
-endif ()
